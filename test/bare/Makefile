@@ -1,5 +1,5 @@
 CC=riscv64-unknown-elf-gcc
-CFLAGS=-mcmodel=medany -Wall -O2 -fno-common -fno-builtin
+CFLAGS=-mcmodel=medany -Wall -O0 -fno-common -fno-builtin
 LDFLAGS=-static -nostdlib -nostartfiles -lgcc
 
 hello: hello.o crt.o syscalls.o
