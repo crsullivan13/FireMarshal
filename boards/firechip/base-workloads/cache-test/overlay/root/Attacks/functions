@@ -1,0 +1,79 @@
+#!/bin/bash
+
+BW=workloads/Bw
+BKPLL=workloads/BkPLL
+
+function BwReadVictimSolo() {
+    output=`$BW -c 3 -m $1 -i $2 -t 0 -a read 2>&1`
+    solo=`echo "$output" | grep elapsed | awk 'NF{print $(NF-2)}'`
+    echo "BwReadSolo, $solo"
+}
+
+function BwReadVictimCorun() {
+    output=`$BW -c 3 -m $1 -i $2 -t 0 -a read 2>&1`
+    slow=`echo "$output" | grep elapsed | awk 'NF{print $(NF-2)}'`
+    slowdown=`bc <<< "scale=2; $slow/$solo"`
+    echo "BwVictim, $slow"
+}
+
+function BkPLLSoloBw() {
+    output=`chrt -f 1 $BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+    solo=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
+    echo "BkPLLSoloBw, $solo"
+}
+
+function BkPLLSolo() {
+    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+    solo=`echo "$output" | grep duration | awk 'NF{print $(NF-3)}'`
+    echo "BkPLLSolo, $solo"
+}
+
+function BkPLLSoloBwCorun() {
+    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+    solo=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
+    slowdown=`bc <<< "scale=2; $slow/$solo"`
+    echo "BkPLLSoloBwCorun, $slowdown"
+}
+
+function BkPLLCorun() {
+    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+    slow=`echo "$output" | grep duration | awk 'NF{print $(NF-3)}'`
+    slowdown=`bc <<< "scale=2; $slow/$solo"`
+    echo "BkPLLCorun, $slowdown"
+}
+
+function BkPLLWriteAttackers() {
+    for ((i=0; i<$1; i++)); do
+        $BKPLL -c $i -m $2 -a write -i 99999999 -e $3 -b 0x40 &> /dev/null &
+    done
+}
+
+# ./BkPLL -c 0 -m 32 -a write -i 99999999 -e 1 -b 0x40 -l 7 &
+# ./BkPLL -c 1 -m 1 -a write -i 99999999 -e 1 -b 0x40 -l 7 &
+# ./BkPLL -c 3 -m 1 -a write -i 99999999 -e 1 -b 0x40 -l 7 &
+# ./BkPLL -c 4 -m 64 -a read -i 10000 -e 1 -b 0x40 -l 7 
+# ./BkPLL -c 3 -m 64 -a write -i 99999999 -e 0 -b 0x40 -l 7 &> /dev/null &
+# chrt -f 1 ./BkPLL -c 0 -m 64 -a write -i 10000 -e 0 -b 0x40 -l 7 &
+# ./Bw -c 0 -m 192 -i 10000 -t 0 -a read
+
+# ./BkPLL -c 1 -m 32 -a write -i 99999999 -l 7 &
+# ./BkPLL -c 2 -m 32 -a write -i 99999999 -l 7 &
+# ./BkPLL -c 3 -m 32 -a write -i 99999999 -l 7 &
+# ./Bw -c 0 -m 192 -i 10000 -t 0 -a read
+
+# ./Bw -c 0 -m 64 -t 5 -a read &
+# ./Bw -c 1 -m 64 -t 5 -a read &
+# ./Bw -c 2 -m 64 -t 5 -a read &
+# ./Bw -c 3 -m 64 -t 5 -a read &
+
+# firesim-start-trigger && ./BkPLL -c 0 -m 64 -a write -i 99999999 -e 0 -b 0x40 -l 7 &
+# ./BkPLL -c 0 -m 64 -a write -i 99999999 -e 0 -b 0x40 -l 7 && firesim-end-trigger &
+# ./BkPLL -c 0 -m 64 -a write -i 10000 -e 0 -b 0x40 -l 7 &
+# ./BkPLL -c 1 -m 64 -a write -i 10000 -e 0 -b 0x40 -l 7 &
+
+# ./BkPLL -c 3 -m 64 -a write -i 99999999 -e 1 -b 0x40 &> /dev/null &
+# ./Bw -c 0 -m 256 -i 10000 -t 0 -a read
+
+# ./BkPLL -c 2 -m 64 -a write -i 99999999 -e 1 -b 0x40 &> /dev/null &
+# ./BkPLL -c 3 -m 64 -a write -i 99999999 -e 1 -b 0x40 &> /dev/null &
+# ./BkPLL -c 1 -m 64 -a write -i 10000 -e 1 -b 0x40
