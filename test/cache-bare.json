@@ -1,0 +1,9 @@
+{
+  "name" : "cache-bare",
+  "base" : "bare-base.json",
+  "host-init" : "build.sh",
+  "bin" : "hello",
+  "testing" : {
+    "refDir" : "refOutput"
+  }
+}

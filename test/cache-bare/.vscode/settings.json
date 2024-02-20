@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "errno.h": "c"
+    },
+    "files.watcherExclude": {
+        "**/target": true
+    }
+}
