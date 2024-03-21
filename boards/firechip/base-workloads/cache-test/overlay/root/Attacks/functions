@@ -3,43 +3,42 @@
 BW=workloads/Bw
 BKPLL=workloads/BkPLL
 
-function BwReadVictimSolo() {
-    output=`$BW -c 3 -m $1 -i $2 -t 0 -a read 2>&1`
-    solo=`echo "$output" | grep elapsed | awk 'NF{print $(NF-2)}'`
+function BwVictimSolo() {
+    output=`$BW -c $1 -m $2 -i $3 -t 0 -a $4 2>&1`
+    solo=`echo "$output" | grep B/W | awk 'NF{print $(NF-7)}'`
     echo "BwReadSolo, $solo"
 }
 
-function BwReadVictimCorun() {
-    output=`$BW -c 3 -m $1 -i $2 -t 0 -a read 2>&1`
-    slow=`echo "$output" | grep elapsed | awk 'NF{print $(NF-2)}'`
-    slowdown=`bc <<< "scale=2; $slow/$solo"`
-    echo "BwVictim, $slow"
-}
-
-function BkPLLSoloBw() {
-    output=`chrt -f 1 $BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
-    solo=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
-    echo "BkPLLSoloBw, $solo"
+function BwVictimCorun() {
+    output=`$BW -c $1 -m $2 -i $3 -t 0 -a $4 2>&1`
+    slow=`echo "$output" | grep B/W | awk 'NF{print $(NF-7)}'`
+    slowdown=`bc <<< "scale=2; $solo/$slow"`
+    echo "BwWriteVictim, $slow"
 }
 
 function BkPLLSolo() {
     output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
-    solo=`echo "$output" | grep duration | awk 'NF{print $(NF-3)}'`
-    echo "BkPLLSolo, $solo"
+    solo=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
+    echo "BkPLLSoloBw, $solo"
 }
 
-function BkPLLSoloBwCorun() {
-    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+function BkPLLSoloNoBank() {
+    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -b 0x40 2>&1`
     solo=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
-    slowdown=`bc <<< "scale=2; $slow/$solo"`
+    echo "BkPLLSoloBw, $solo"
+}
+
+function BkPLLSoloCorun() {
+    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
+    slow=`echo "$output" | grep bandwidth | awk 'NF{print $(NF-1)}'`
+    slowdown=`bc <<< "scale=2; $solo/$slow"`
     echo "BkPLLSoloBwCorun, $slowdown"
 }
 
-function BkPLLCorun() {
-    output=`$BKPLL -c $1 -m $2 -a $3 -i $4 -e $5 -b 0x40 2>&1`
-    slow=`echo "$output" | grep duration | awk 'NF{print $(NF-3)}'`
-    slowdown=`bc <<< "scale=2; $slow/$solo"`
-    echo "BkPLLCorun, $slowdown"
+function BwWriteAttackers() {
+    for ((i=0; i<$1; i++)); do
+        $BW -c $i -m $2 -i 99999999 -t 0 -a write &> /dev/null &
+    done
 }
 
 function BkPLLWriteAttackers() {

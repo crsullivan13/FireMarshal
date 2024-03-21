@@ -1,7 +1,6 @@
 #!/bin/bash
 set -x
 
-
 . ./functions
 
 OUT1=../output/hangtest.csv
@@ -11,7 +10,7 @@ OUT1=../output/hangtest.csv
 
 echo "MaxAccesses,SoloBandwidth,ContestedBandwidth" >> $OUT1
 
-maxAccesses=(1 2 4 8)
+maxAccesses=(1 2 3 4 5)
 accessWindow=$1
 victimIterations=10000
 
@@ -23,16 +22,16 @@ for maxAcc in ${maxAccesses[@]}; do
 
     . ./set.sh $accessWindow $maxAcc
 
-    BkPLLSoloBw 3 64 read $victimIterations 1
+    BkPLLSolo 3 64 read $victimIterations 1
     bw[$index]+="$solo "
 
-    BkPLLWriteAttackers 32 1
+    BkPLLWriteAttackers 3 64 1
     sleep 1.5
-    BkPLLSoloBw 3 64 read $victimIterations 1
-    bw[$index]+="$solo "
+    BkPLLSoloCorun 3 64 read $victimIterations 1
+    bw[$index]+="$slow "
     killall BkPLL
 
-    printf '%s\n' ${bw[$index]} | paste -sd ',' >> $OUT1
+    #printf '%s\n' ${bw[$index]} | paste -sd ',' >> $OUT1
     index=$((index+1))
     #echo "$index"
 

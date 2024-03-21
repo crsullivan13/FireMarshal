@@ -34,7 +34,7 @@
 /**************************************************************************
  * Public Definitions
  **************************************************************************/
-#define CACHE_LINE_SIZE 128	   /* cache Line size is 64 byte */
+#define CACHE_LINE_SIZE 64	   /* cache Line size is 64 byte */
 #ifdef __arm__
 #  define DEFAULT_ALLOC_SIZE_KB 4096
 #else
@@ -44,16 +44,17 @@
 /**************************************************************************
  * Public Types
  **************************************************************************/
-enum access_type { READ, WRITE};
+enum access_type { READ, WRITE };
 
 /**************************************************************************
  * Global Variables
  **************************************************************************/
-int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024;	   /* memory size */
-int *g_mem_ptr = 0;		   /* pointer to allocated memory region */
+int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024;		/* memory size */
+int *g_mem_ptr = 0;		   				           	/* pointer to allocated memory region */
+int g_stride_size = 64;								/* access stride in bytes */
 
-volatile uint64_t g_nread = 0;	           /* number of bytes read */
-volatile unsigned int g_start;		   /* starting time */
+volatile uint64_t g_nread = 0;	           			/* number of bytes read */
+volatile unsigned int g_start;		   				/* starting time */
 int cpuid = 0;
 
 /**************************************************************************
@@ -74,9 +75,12 @@ void quit(int param)
 	dur_in_sec = (float)dur / 1000000;
 	printf("g_nread(bytes read) = %lld\n", (long long)g_nread);
 	printf("elapsed = %.2f sec ( %.0f usec )\n", dur_in_sec, dur);
+
+	g_nread = g_nread / ( g_stride_size / CACHE_LINE_SIZE );
+
 	bw = (float)g_nread / dur_in_sec / 1024 / 1024;
 	printf("CPU%d: B/W = %.2f MB/s | ",cpuid, bw);
-	printf("CPU%d: average = %.2f ns\n", cpuid, (dur*1000)/(g_nread/CACHE_LINE_SIZE));
+	printf("CPU%d: average = %.2f ns\n", cpuid, (dur*1000)/(g_nread/g_stride_size));
 	exit(0);
 }
 
@@ -84,7 +88,7 @@ int64_t bench_read()
 {
 	int i;	
 	int64_t sum = 0;
-	for ( i = 12; i < g_mem_size/4; i+=(CACHE_LINE_SIZE/4) ) {
+	for ( i = 0; i < g_mem_size / 4; i += ( g_stride_size / 4 ) ) {
 		sum += g_mem_ptr[i];
 	}
 	g_nread += g_mem_size;
@@ -94,7 +98,7 @@ int64_t bench_read()
 int bench_write()
 {
 	register int i;	
-	for ( i = 12; i < g_mem_size/4; i+=(CACHE_LINE_SIZE/4) ) {
+	for ( i = 0; i < g_mem_size / 4; i += ( g_stride_size / 4 ) ) {
 		g_mem_ptr[i] = i;
 	}
 	g_nread += g_mem_size;
@@ -104,6 +108,7 @@ int bench_write()
 void usage(int argc, char *argv[])
 {
 	printf("Usage: $ %s [<option>]*\n\n", argv[0]);
+	printf("-s: access stride in bytes. default=64\n");
 	printf("-m: memory size in KB. deafult=8192\n");
 	printf("-a: access type - read, write. default=read\n");
 	printf("-n: addressing pattern - Seq, Row, Bank. default=Seq\n");
@@ -136,8 +141,11 @@ int main(int argc, char *argv[])
 	/*
 	 * get command line options 
 	 */
-	while ((opt = getopt(argc, argv, "m:a:n:t:c:i:p:r:f:l:xh")) != -1) {
+	while ((opt = getopt(argc, argv, "s:m:a:n:t:c:i:p:r:f:l:xh")) != -1) {
 		switch (opt) {
+		case 's':
+			g_stride_size = strtol(optarg, NULL, 0);
+			break;
 		case 'm': /* set memory size */
 			g_mem_size = 1024 * strtol(optarg, NULL, 0);
 			break;
@@ -253,4 +261,3 @@ int main(int argc, char *argv[])
 	quit(0);
 	return 0;
 }
-

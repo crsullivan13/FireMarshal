@@ -16,12 +16,12 @@ index=0
 for victimSize in ${victimSizes[@]}; do
     slowdowns[$index]+="$victimSize "
 
-    BwReadVictimSolo $victimSize $victimIterations
+    BwVictimSolo $victimSize $victimIterations $victimTypes
     slowdowns[$index]+="1.00 "
 
-    BkPLLWriteAttackers 32 1
+    BkPLLWriteAttackers 3 32 1
     sleep 3
-    BwReadVictimCorun $victimSize $victimIterations
+    BwVictimCorun $victimSize $victimIterations $victimTypes
     slowdowns[$index]+="$slowdown "
     killall BkPLL
 

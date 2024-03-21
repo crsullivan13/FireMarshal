@@ -41,7 +41,7 @@
  * Public Definitions
  **************************************************************************/
 #define MAX_MLP 32
-#define CACHE_LINE_SIZE 128
+#define CACHE_LINE_SIZE 64
 #ifdef __arm__
 #  define DEFAULT_ALLOC_SIZE_KB 4096
 #else
