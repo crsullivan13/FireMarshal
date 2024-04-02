@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <bits/getopt_core.h>
 #include <sys/mman.h>
+#include <stdbool.h>
 
 #include "rocc.h"
 #include "compiler.h"
@@ -26,27 +27,33 @@ enum STREAM_TYPE {
     RAND_WR = 5
 };
 
+void printConfig(int mem_size, int req_multplier, int stride, int streams, enum STREAM_TYPE stream_type) {
+  printf("Stream count: %d | stream type: %d | stride size: %d\n", streams, stream_type, stride);
+  printf("Memory size(KB): %d | request multiplier %d\n", mem_size, req_multplier);
+}
+
 int main(int argc, char* argv[]) {
   enum STREAM_TYPE stream_type  = STRIDE_RD;
-  int mem_size = 128 * KB; //allocated mem size in KB
-  int max_req_multplier = 1;
-  int stride_bytes = CL_BYTES;
-  int stream_cnt = 16;
+  int mem_size = 128 * KB;     //allocated mem size in KB
+  int max_req_multplier = 1;   //what to mult max requests by, TODO change max requests
+  int stride_bytes = CL_BYTES; //streams stride size
+  int stream_cnt = 16;         //number of streams (max is 16)
+  bool using_huge_page = false;
 
   int i;
   unsigned long long cycle_cnt = 0;
   unsigned long long req_sent = 0;
 
   int opt;
-  while ( ( opt = getopt(argc, argv, "a:m:s:i:w") ) != -1 ) {
+  while ( ( opt = getopt(argc, argv, "a:m:s:i:w:hx") ) != -1 ) {
     switch ( opt )
     {
     case 'a':
-      if ( !(strcmp(optarg, "sw") ) ) {
+      if ( !strcmp(optarg, "sw") ) {
         stream_type  = STRIDE_WR;
       } else if ( !strcmp(optarg, "rr") ) {
         stream_type = RAND_RD;
-      } else if ( strcmp(optarg, "rw") ) {
+      } else if ( !strcmp(optarg, "rw") ) {
         stream_type = RAND_WR;
       } else if ( !strcmp(optarg, "sr") ) {
         stream_type = STRIDE_RD;
@@ -63,6 +70,10 @@ int main(int argc, char* argv[]) {
       break;
     case 'w':
       stream_cnt = strtol(optarg, NULL, 0);
+      assert(stream_cnt <= MAX_STREAMS);
+      break;
+    case 'x':
+      using_huge_page = true;
       break;
     default:
       printf("unkown arg %c\n", opt);
@@ -71,6 +82,8 @@ int main(int argc, char* argv[]) {
 
   }
 
+  printConfig(mem_size, max_req_multplier, stride_bytes, stream_cnt, stream_type);
+
   printf("main() started\n");
 
   int max_reqs = mem_size / (stream_cnt * 2 * CL_BYTES);
@@ -78,17 +91,31 @@ int main(int argc, char* argv[]) {
 
   int idx_offset[MAX_STREAMS];
   for (i = 0; i < stream_cnt; i++) {
-      idx_offset[i] = mem_size * i / (int)sizeof(char);
+      idx_offset[i] = 128 * i;
   }
   int max_idx = mem_size;
 
-  printf("Start allocating memory by memalign\n");
-  char* input = (char*)memalign(sizeof(char), (size_t)mem_size);
+  printf("Allocating memory\n");
+  char* input = NULL;
+
+  int page_stride = 4 * KB;
+  if ( using_huge_page ) {
+    printf("using huge page\n");
+    input = mmap(0, 
+				       mem_size,
+				       PROT_READ | PROT_WRITE, 
+				       MAP_PRIVATE | 0x20 | 0x40000, 
+				       -1, 0);
+    page_stride = 2000 * KB;
+  } else {
+    printf("using malloc\n");
+    input = memalign(sizeof(char), (size_t)mem_size);
+  }
+
   memset(input, 0, sizeof(input));
 
   //TODO: If using huge pages, what's the page size?
   printf("Prevents page faults by touching them\n");
-  int page_stride = 4 * KB / (int)sizeof(char);
   for (i = 0; i < max_idx; i += page_stride) {
       input[i] = '3'; // 0011_0011
   }
@@ -111,7 +138,7 @@ int main(int argc, char* argv[]) {
       uint64_t stride_n_type = (stride_bytes << 3) | ((int)stream_type);
 
       //set per stream stride, type, starting addr
-      ROCC_INSTRUCTION_SS(2, stride_n_type, &input[idx_offset[0]], 2);
+      ROCC_INSTRUCTION_SS(2, stride_n_type, &input[idx_offset[i]], 2);
   }
 
   // get hw counter values

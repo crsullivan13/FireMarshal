@@ -14,8 +14,8 @@ make mc-mapping-pagemap
 
 cd ../../..
 
-echo "Building hpm-counter binary"
-cd overlay/root/riscv-hpmcounters/
+echo "Building mempress"
+cd overlay/root/mempress/
 
 make
 

@@ -44,18 +44,18 @@
 /**************************************************************************
  * Public Types
  **************************************************************************/
-enum access_type { READ, WRITE };
+enum access_type { READ, WRITE};
 
 /**************************************************************************
  * Global Variables
  **************************************************************************/
-int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024;		/* memory size */
-int *g_mem_ptr = 0;		   				           	/* pointer to allocated memory region */
-int g_stride_size = 64;								/* access stride in bytes */
+int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024;	   /* memory size */
+int *g_mem_ptr = 0;		   /* pointer to allocated memory region */
 
-volatile uint64_t g_nread = 0;	           			/* number of bytes read */
-volatile unsigned int g_start;		   				/* starting time */
+volatile uint64_t g_nread = 0;	           /* number of bytes read */
+volatile unsigned int g_start;		   /* starting time */
 int cpuid = 0;
+int g_stride = CACHE_LINE_SIZE;
 
 /**************************************************************************
  * Public Functions
@@ -75,12 +75,10 @@ void quit(int param)
 	dur_in_sec = (float)dur / 1000000;
 	printf("g_nread(bytes read) = %lld\n", (long long)g_nread);
 	printf("elapsed = %.2f sec ( %.0f usec )\n", dur_in_sec, dur);
-
-	g_nread = g_nread / ( g_stride_size / CACHE_LINE_SIZE );
-
+	g_nread = g_nread / ( g_stride / CACHE_LINE_SIZE );
 	bw = (float)g_nread / dur_in_sec / 1024 / 1024;
 	printf("CPU%d: B/W = %.2f MB/s | ",cpuid, bw);
-	printf("CPU%d: average = %.2f ns\n", cpuid, (dur*1000)/(g_nread/g_stride_size));
+	printf("CPU%d: average = %.2f ns\n", cpuid, (dur*1000)/(g_nread/CACHE_LINE_SIZE));
 	exit(0);
 }
 
@@ -88,7 +86,7 @@ int64_t bench_read()
 {
 	int i;	
 	int64_t sum = 0;
-	for ( i = 0; i < g_mem_size / 4; i += ( g_stride_size / 4 ) ) {
+	for ( i = 0; i < g_mem_size/4; i+=(g_stride/4) ) {
 		sum += g_mem_ptr[i];
 	}
 	g_nread += g_mem_size;
@@ -98,7 +96,7 @@ int64_t bench_read()
 int bench_write()
 {
 	register int i;	
-	for ( i = 0; i < g_mem_size / 4; i += ( g_stride_size / 4 ) ) {
+	for ( i = 0; i < g_mem_size/4; i+=(g_stride/4) ) {
 		g_mem_ptr[i] = i;
 	}
 	g_nread += g_mem_size;
@@ -108,7 +106,6 @@ int bench_write()
 void usage(int argc, char *argv[])
 {
 	printf("Usage: $ %s [<option>]*\n\n", argv[0]);
-	printf("-s: access stride in bytes. default=64\n");
 	printf("-m: memory size in KB. deafult=8192\n");
 	printf("-a: access type - read, write. default=read\n");
 	printf("-n: addressing pattern - Seq, Row, Bank. default=Seq\n");
@@ -143,9 +140,6 @@ int main(int argc, char *argv[])
 	 */
 	while ((opt = getopt(argc, argv, "s:m:a:n:t:c:i:p:r:f:l:xh")) != -1) {
 		switch (opt) {
-		case 's':
-			g_stride_size = strtol(optarg, NULL, 0);
-			break;
 		case 'm': /* set memory size */
 			g_mem_size = 1024 * strtol(optarg, NULL, 0);
 			break;
@@ -193,6 +187,9 @@ int main(int argc, char *argv[])
 		case 'i': /* iterations */
 			iterations = strtol(optarg, NULL, 0);
 			break;
+		case 's':
+			g_stride = strtol(optarg, NULL, 0);
+			break;
 		case 'h': 
 			usage(argc, argv);
 			break;
@@ -227,10 +224,11 @@ int main(int argc, char *argv[])
 		g_mem_ptr[j] = j;
 
 	/* print experiment info before starting */
-	printf("memsize=%d KB, type=%s, cpuid=%d\n",
+	printf("memsize=%d KB, type=%s, cpuid=%d, stride=%d\n",
 	       g_mem_size/1024,
 	       ((acc_type==READ) ?"read": "write"),
-		cpuid);
+		cpuid,
+		g_stride);
 	printf("stop at %d\n", finish);
 
 	/* set signals to terminate once time has been reached */
@@ -261,3 +259,4 @@ int main(int argc, char *argv[])
 	quit(0);
 	return 0;
 }
+

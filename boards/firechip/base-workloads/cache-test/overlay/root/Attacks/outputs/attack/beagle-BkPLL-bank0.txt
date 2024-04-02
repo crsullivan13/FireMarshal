@@ -1,0 +1,20 @@
+sizeof(unsigned long): 8
+BITS_PER_LONG: 64
+DRAM Bank bits: 6 
+Colors: 0 
+orig_ws: 2048  mlp: 6
+Using malloc(), not very accurate
+new ws: 1020
+list_len: 170
+list[0]  220
+list[1]  44
+list[2]  458
+list[3]  632
+list[4]  1078
+list[5]  932
+Init took 424 us
+alloc. size: 131072 (128 KB)
+ws size: 65280 (63 KB)
+duration 124137082 ns, #access 10200000
+Avg. latency 12.17 ns
+bandwidth 5258.70 MB/s
