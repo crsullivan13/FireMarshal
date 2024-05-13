@@ -1,0 +1,12 @@
+{
+    "name" : "4bk-15360",
+    "base" : "cache-test.json",
+    "workdir" : "cache-test",
+    "outputs" : [ "/root/outputs/" ],
+    "jobs" : [
+        {
+            "name" : "15360",
+            "command" : "cd /root; ./setup.sh; ./throttle-all.sh 400 96 96; ./solo.sh 0 0xc0; cd mempress; sleep 2; ./contention-test.sh sw 30000000 0 0xc0 256 out.txt; poweroff -f"
+        }
+    ]
+}

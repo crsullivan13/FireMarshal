@@ -1,0 +1,9 @@
+{
+  "name" : "counter-test",
+  "base" : "bare-base.json",
+  "host-init" : "build.sh",
+  "bin" : "bin/hpmCounters.riscv",
+  "testing" : {
+    "refDir" : "refOutput"
+  }
+}

@@ -18,6 +18,7 @@
  * Included Files
  **************************************************************************/
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
+#define __riscv
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,11 +33,12 @@
 #include <sys/resource.h>
 
 #include "util.h"
+#include "encoding.h"
 
 /**************************************************************************
  * Public Definitions
  **************************************************************************/
-#define CACHE_LINE_SIZE 64	   /* cache Line size is 64 byte */
+#define CACHE_LINE_SIZE 128   /* cache Line size is 64 byte */
 #ifdef __arm__
 #  define DEFAULT_ALLOC_SIZE_KB 4096
 #else
@@ -90,7 +92,7 @@ int64_t bench_read(int* mem)
 	for ( i = 0; i < g_mem_size/4; i+=(CACHE_LINE_SIZE/4) ) {
 		sum += mem[i];
 	}
-	g_nread += g_mem_size;
+	g_nread += (g_mem_size);
 	return sum;
 }
 
@@ -100,7 +102,7 @@ int bench_write(int* mem)
 	for ( i = 0; i < g_mem_size/4; i+=(CACHE_LINE_SIZE/4) ) {
 		mem[i] = i;
 	}
-	g_nread += g_mem_size;
+	g_nread += (g_mem_size);
 	return 1;
 }
 
@@ -137,8 +139,8 @@ void thread_entry(int cid, int nc)
 	/*
 	 * get command line options 
 	 */
-	g_mem_size = 1024 * 64;
-	acc_type = WRITE;
+	g_mem_size = 1024 * 92;
+	acc_type = READ;
 	finish = 0;
 	iterations = 10000;
 
@@ -216,10 +218,12 @@ void thread_entry(int cid, int nc)
 	 * actual memory access
 	 */
 	printf("howdy from core C%d\n", cid);
-	barrier(nc);
+	//barrier(nc);
 	printf("commencing accesses\n");
 	//while (cid == 1) {}
 	//g_start = get_usecs();
+	//asm volatile ("fence");
+	printf("start: %ld", rdcycle());
 	for (i=0;; i++) {
 		switch (acc_type) {
 		case READ:
@@ -230,8 +234,10 @@ void thread_entry(int cid, int nc)
 			break;
 		}
 
-		if (iterations > 0 && i+1 >= iterations)
+		if (iterations > 0 && i+1 >= iterations) {
+			printf("end: %ld", rdcycle());
 			break;
+		}
 	}
 	printf("total sum = %ld\n", (long)sum);
 	quit(0, nc);

@@ -1,0 +1,12 @@
+{
+    "name" : "2bk-5120",
+    "base" : "cache-test.json",
+    "workdir" : "cache-test",
+    "outputs" : [ "/root/outputs/" ],
+    "jobs" : [
+        {
+            "name" : "5120",
+            "command" : "cd /root; ./setup.sh; ./throttle-all.sh 400 64 64; ./solo.sh 0 0x40; cd mempress; sleep 2; ./contention-test.sh sw 6000000 0 0x40 128 out.txt; poweroff -f"
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "name" : "2bk-solo",
+    "base" : "cache-test.json",
+    "workdir" : "cache-test",
+    "outputs" : [ "/root/outputs/" ],
+    "jobs" : [
+        {
+            "name" : "solo",
+            "command" : "cd root; ./setup.sh; ./solo.sh 0 0x40; poweroff -f"
+        }
+    ]
+}

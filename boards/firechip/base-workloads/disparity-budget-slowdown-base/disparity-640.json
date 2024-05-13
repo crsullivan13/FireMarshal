@@ -1,0 +1,12 @@
+{
+    "name" : "disparity-640",
+    "base" : "cache-test.json",
+    "workdir" : "cache-test",
+    "outputs" : [ "/root/outputs/" ],
+    "jobs" : [
+        {
+            "name" : "640",
+            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./throttle-all.sh 400 16 16; ./sdvbs-solo.sh disparity; cd /root/mempress; sleep 2; ./contention-test-sdvbs.sh sw 3000000 disparity 0x40 128; poweroff -f"
+        }
+    ]
+}

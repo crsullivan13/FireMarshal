@@ -4,5 +4,5 @@
     "overlay" : "overlay",
     "host-init" : "host-init.sh",
     "guest-init" : "guest-init.sh",
-    "outputs" : [ "/root/Attacks/outputs/" ]
+    "rootfs-size": "8GB"
 }

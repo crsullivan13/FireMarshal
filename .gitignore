@@ -8,3 +8,5 @@ boards/default/distros/ubuntu/rootfs.img*
 .ropeproject
 *~
 *#
+.vscode
+*.riscv

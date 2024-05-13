@@ -9,9 +9,12 @@ TARGET=mempress-rocc
 TARGET_RISCV=$(TARGET).riscv
 JUNK += $(TARGET_RISCV)
 
-all: $(TARGET_RISCV)
+all: $(TARGET_RISCV) counters
 
 $(TARGET_RISCV): mempress-rocc.c
+	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
+
+counters: hpm-counters.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
 .PHONY: clean
