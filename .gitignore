@@ -10,3 +10,4 @@ boards/default/distros/ubuntu/rootfs.img*
 *#
 .vscode
 *.riscv
+boards/firechip/base-workloads/cortexsuite
