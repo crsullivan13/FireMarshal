@@ -1,0 +1,22 @@
+#!/bin/bash
+
+vpart=part1
+apart=part2
+
+function BkPLLVictim() {
+    echo $$ > /sys/fs/cgroup/palloc/$vpart/cgroup.procs
+
+    BkPLL -c 1 -l 6 -b $1 -m 128 -e $2 -i 15000 # | grep bandwidth | awk 'NF{print $(NF-1)}' > ../outputs/synth-attack/$OUT
+}
+
+function SDVBSVictim() {
+    echo $$ > /sys/fs/cgroup/palloc/$vpart/cgroup.procs
+
+    time taskset -c 1 ../scripts/sdvbs-cif.sh $1 #> ../outputs/sdvbs/$workload-victim.txt
+}
+
+function Attackers() {
+    echo $$ > /sys/fs/cgroup/palloc/$apart/cgroup.procs
+
+    for i in 2 3; do taskset -c $i ./mempress-rocc.riscv -m 64 -a $1 -s $2 -i $3 -b $4 -e 0 & done
+}
