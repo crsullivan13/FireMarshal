@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "solo",
-            "command" : "cd root; ./setup.sh; cd /root/scripts/; ./sdvbs-solo.sh disparity; poweroff -f"
+            "command" : "cd root; ./setup.sh; cd /root/scripts/; ./palloc-setup.sh; ./sdvbs-solo.sh disparity; poweroff -f"
         }
     ]
 }

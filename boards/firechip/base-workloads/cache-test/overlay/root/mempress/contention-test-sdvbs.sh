@@ -10,9 +10,35 @@ workload=$3
 mask=$4
 stride=$5
 
+# Start the BkPLL process in the background and add it to the cgroup
+(
+    echo $$ > /sys/fs/cgroup/palloc/part1/cgroup.procs
+    taskset -c 1 ../scripts/sdvbs-cif.sh $workload > ../outputs/sdvbs/$workload-victim.txt &
+    wait $!
+) &
+
+# Start the mempress processes in the background and add them to the cgroup
+(
+    echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs
+    for i in 2 3; do
+        (
+            echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs
+            taskset -c $i ./mempress-rocc.riscv -m 64 -a $accessType -s $stride -i $attackItrs -b $mask -e 0 &
+        )
+    done
+    wait
+) &
+
+# Wait for all background processes to finish
+wait
+
 #no idea why, but putting this on one line matters
 #for i in 2 3; do taskset -c $i ./mempress-rocc.riscv -a $accessType -s $stride -i $attackItrs -b $mask -e 0 & done; taskset -c 1 ../scripts/sdvbs-cif.sh $workload #> ../outputs/sdvbs/$workload-victim.txt
 
-echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs; for i in 2 3; do taskset -c $i ./mempress-rocc.riscv -m 64 -a $accessType -s $stride -i $attackItrs -b $mask -e 0 & done; echo $$ > /sys/fs/cgroup/palloc/part1/cgroup.procs; taskset -c 1 ../scripts/sdvbs-cif.sh $workload
+# SDVBSVictim $workload
+# sleep 0.1
+# Attackers $accessType $stride $attackItrs $mask
 
-echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs; for i in 2 3; do taskset -c $i ./mempress-rocc.riscv -m 64 -a sw -s 128 -i 6000000 -b 0x40 -e 0 & done; echo $$ > /sys/fs/cgroup/palloc/part1/cgroup.procs; taskset -c 1 ../scripts/sdvbs-cif.sh disparity
+# wait
+
+#(echo $$ > /sys/fs/cgroup/palloc/part1/cgroup.procs; taskset -c 1 ../scripts/sdvbs-cif.sh $workload &) & (echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs; for i in 0; do (echo $$ > /sys/fs/cgroup/palloc/part2/cgroup.procs; taskset -c $i ./mempress-rocc.riscv -m 64 -a $accessType -s $stride -i $attackItrs -b $mask -e 0 &) done; wait) &

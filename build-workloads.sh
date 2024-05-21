@@ -5,17 +5,17 @@ set -euo pipefail
 option=$1
 
 contention=("contention-solo.json" "contention-sepBankR.json" "contention-sameBankR.json" "contention-sepBankW.json" "contention-sameBankW.json" "contention-throttledR.json" "contention-throttledW.json")
-budgetSlowdown=("solo.json" "640.json" "1280.json" "2560.json" "5120.json" "7680.json" "10240.json" "12800.json" "15360.json")
+budgetSlowdown=("640.json" "1280.json" "2560.json" "5120.json" "7680.json" "10240.json" "12800.json" "15360.json")
 
 sdvbs=("disparity" "mser" "sift" "stitch" "tracking" "svm" "localization")
 
-if [[ $option == "contention" || $option == "all" ]]; then
-	for i in "${contention[@]}"; do
-		echo "$i"
-		sudo ./marshal build $i
-		sudo ./marshal install $i
-	done
-fi
+#if [[ $option == "contention" || $option == "all" ]]; then
+#	for i in "${contention[@]}"; do
+#		echo "$i"
+#		sudo ./marshal build $i
+#		sudo ./marshal install $i
+#	done
+#fi
 
 if [[ $option == "synthbudget" || $option == "all" ]]; then
 	for i in "${budgetSlowdown[@]}"; do
@@ -47,12 +47,8 @@ fi
 
 if [[  $option == "sdvbsbudget" || $option == "all"  ]]; then
 	for i in "${sdvbs[@]}"; do
-		sudo ./marshal build $i-1280.json
 		sudo ./marshal build $i-5120.json
-		sudo ./marshal build $i-10240.json
 
-		sudo ./marshal install $i-1280.json
 		sudo ./marshal install $i-5120.json
-		sudo ./marshal install $i-10240.json
 	done
 fi

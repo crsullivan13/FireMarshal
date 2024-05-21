@@ -12,7 +12,7 @@ function BkPLLVictim() {
 function SDVBSVictim() {
     echo $$ > /sys/fs/cgroup/palloc/$vpart/cgroup.procs
 
-    time taskset -c 1 ../scripts/sdvbs-cif.sh $1 #> ../outputs/sdvbs/$workload-victim.txt
+    taskset -c 1 ../scripts/sdvbs-cif.sh $1 #> ../outputs/sdvbs/$workload-victim.txt
 }
 
 function Attackers() {

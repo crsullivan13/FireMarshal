@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "15360",
-            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./throttle-all.sh 400 384 384; ./solo.sh 0 0x40; cd /root/mempress; sleep 2; ./contention-test.sh sw 30000000 0 0x40 128 out.txt; poweroff -f"
+            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./palloc-setup.sh; ./solo.sh 0 0x40; cd /root/mempress; ./regulate 400 384 384; sleep 2; ./contention-test.sh sw 60000000 0 0x40 128 out.txt; poweroff -f"
         }
     ]
 }
