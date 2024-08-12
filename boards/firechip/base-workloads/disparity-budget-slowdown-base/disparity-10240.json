@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "10240",
-            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./palloc-setup.sh; ./sdvbs-solo.sh disparity; cd /root/mempress; ./regulate 400 256 256; sleep 2; ./contention-test-sdvbs.sh sw 60000000 disparity 0x40 128; poweroff -f"
+            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./palloc-setup.sh; ./sdvbs-solo.sh disparity; cd /root/mempress; regulate-mempress 400 256 256; sleep 2; ./contention-test-sdvbs.sh sw 60000000 disparity 0x40 128; poweroff -f"
         }
     ]
 }

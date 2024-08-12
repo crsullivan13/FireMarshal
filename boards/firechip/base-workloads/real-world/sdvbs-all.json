@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "sdvbs-all",
-            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./sdvbs-all-single.sh; sleep 0.5; ./sdvbs-all-multi.sh; ./throttle-boom.sh 400 8 8; ./sdvbs-all-single.sh; sleep 0.5; ./sdvbs-all-multi.sh; poweroff -f"
+            "command" : "cd /root; ./setup.sh; cd /root/scripts/; ./sdvbs-all-single.sh; sleep 0.5; pb-reg-single 400 8 8; ./sdvbs-all-single.sh; poweroff -f"
         }
     ]
 }
