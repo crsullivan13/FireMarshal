@@ -6,20 +6,18 @@
 
 #define N_DOMAINS 4
 #define N_CLIENTS 1
-#define N_BANKS 4
 #include "per-bank-map.h"
 
-#define N_COUNTERS 8
+// Can be used to configure regulation of a single core config, per-bank regualtion design
+// Works for both 2 and 4 bank designs
 
-// For reading performance counters of a single core config
-// Always reads 8 counters (4 read, 4 write), in a 2-bank config the last four will be zero
-
-// Not all designs have these counters, only per-bank configs can have them
-// Have to include in design through config param
-
-int main() {
+int main(int argc, char* argv[]) {
     unsigned long register_size = sizeof(long unsigned int); // Size of each register (64-bit)
     unsigned long page_size = 4096;
+
+    unsigned int window = strtoul(argv[1], NULL, 0);
+    unsigned int maxReads = strtoul(argv[2], NULL, 0);
+    unsigned int maxWrites = strtoul(argv[3], NULL, 0);
 
     int fd;
     unsigned long offset = BASE % page_size;
@@ -27,7 +25,6 @@ int main() {
     unsigned long total_size = (NUM_REGS * register_size) + offset;
     void* mapped_base;
     volatile long unsigned int* mapped_addr;
-    long unsigned int* vals = (long unsigned int*)malloc(sizeof(unsigned int)*N_COUNTERS);
 
     fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd == -1) {
@@ -44,19 +41,16 @@ int main() {
 
     mapped_addr = (volatile long unsigned int *)(mapped_base + offset);
 
-    // Read 8 counters
-    // If we only have two banks, last four should be constant 0
-    for (unsigned long i = 0; i < N_COUNTERS; i++) {
-        long unsigned int index = 0;
-        if ( i < 4 ) {
-            index = READ_CNTR(0,i);
-        } else {
-            index = WRITE_CNTR(0,i);
-        }
+    mapped_addr[GLOBAL_EN] = 0;
+    mapped_addr[PERIOD_LEN] = window;
+    mapped_addr[MAX_READ(0)] = maxReads; // Set domain 0 max reads
+    mapped_addr[MAX_PUT(0)] = maxWrites; // Set domain 0 max puts -- ignore this if you don't have mempress in your system
+    mapped_addr[CLIENT_EN(0)] = 0xffffffffffffffff; // being lazy and setting entire enable range to 1's
+    mapped_addr[CLIENT_EN(1)] = 0xffffffffffffffff;
+    mapped_addr[CLIENT_EN(2)] = 0xffffffffffffffff;
+    mapped_addr[CLIENT_DOMAIN(0)] = 0; // Set client 0 to be in domain 0
 
-        vals[i] = mapped_addr[index];
-        printf("Value at address 0x%lx: %lu\n", index * 8, vals[i]);
-    }
+    mapped_addr[GLOBAL_EN] = 1;
 
     // Unmap and close
     if (munmap(mapped_base, total_size) == -1) {

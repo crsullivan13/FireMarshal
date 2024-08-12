@@ -2,19 +2,19 @@
 RISCV_PFX=riscv64-unknown-linux-gnu-gcc
 RISCV_CC=$(RISCV_PFX)
 
-BINARY_OPT=-static 
+BINARY_OPT=-static -Wall
 
-BINS=counters regulate reg-single offon
+BINS=counters regulate-mempress pb-reg-single offon
 
 all: $(BINS)
 
 counters: counters.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
-regulate: regulate.c
+regulate-mempress: regulate-mempress.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
-reg-single: regulate-single.c
+pb-reg-single: per-bank-reg-single.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
 offon: offon.c

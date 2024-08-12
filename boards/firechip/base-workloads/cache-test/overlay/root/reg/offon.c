@@ -4,15 +4,20 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#define N_DOMAINS 4
+#define N_CLIENTS 1
+#include "per-bank-map.h"
+
+// Lazy, but use this to turn perf counters off then back on to zero before running an experiment
+
 int main() {
-    int fd;
-    unsigned long base_address = 0x20000098; // Starting address of the first register
-    unsigned long num_registers = 1; // Number of registers to read
-    unsigned long register_size = sizeof(unsigned int)*2; // Size of each register (64-bit)
+    unsigned long register_size = sizeof(long unsigned int); // Size of each register (64-bit)
     unsigned long page_size = 4096;
-    unsigned long offset = base_address % page_size;
-    unsigned long aligned_base = base_address - offset;
-    unsigned long total_size = (num_registers * register_size) + offset;
+
+    int fd;
+    unsigned long offset = BASE % page_size;
+    unsigned long aligned_base = BASE - offset;
+    unsigned long total_size = (NUM_REGS * register_size) + offset;
     void* mapped_base;
     volatile long unsigned int* mapped_addr;
 
@@ -31,8 +36,8 @@ int main() {
 
     mapped_addr = (long volatile unsigned int *)(mapped_base + offset);
 
-    mapped_addr[0] = 0;
-    mapped_addr[0] = 1;
+    mapped_addr[PERF_EN] = 0;
+    mapped_addr[PERF_EN] = 1;
 
     // Unmap and close
     if (munmap(mapped_base, total_size) == -1) {
