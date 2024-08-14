@@ -9,16 +9,9 @@ TARGET=mempress-rocc
 TARGET_RISCV=$(TARGET).riscv
 JUNK += $(TARGET_RISCV)
 
-all: $(TARGET_RISCV) regulate reg-single
+all: $(TARGET_RISCV)
 
 $(TARGET_RISCV): mempress-rocc.c
-	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
-
-
-regulate: regulate.c
-	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
-
-reg-single: regulate-single.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
 .PHONY: clean
