@@ -6,7 +6,7 @@
 
 #define N_DOMAINS 4
 #define N_CLIENTS 1
-#include "per-bank-map.h"
+#include "mmio-map.h"
 
 // Can be used to configure regulation of a single core config, per-bank regualtion design
 // Works for both 2 and 4 bank designs

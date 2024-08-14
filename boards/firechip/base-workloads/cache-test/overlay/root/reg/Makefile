@@ -4,7 +4,7 @@ RISCV_CC=$(RISCV_PFX)
 
 BINARY_OPT=-static -Wall
 
-BINS=counters regulate-mempress pb-reg-single offon
+BINS=counters regulate-mempress regulate-single offon
 
 all: $(BINS)
 
@@ -14,7 +14,7 @@ counters: counters.c
 regulate-mempress: regulate-mempress.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
-pb-reg-single: per-bank-reg-single.c
+regulate-single: regulate-single.c
 	$(RISCV_CC) $(BINARY_OPT) -o $@ $^
 
 offon: offon.c

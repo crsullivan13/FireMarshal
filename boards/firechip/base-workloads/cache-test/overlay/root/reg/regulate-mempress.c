@@ -6,7 +6,7 @@
 
 #define N_DOMAINS 4
 #define N_CLIENTS 51 // Looks wrong, but mempress edges are all separate clients
-#include "per-bank-map.h"
+#include "mmio-map.h"
 
 int main(int argc, char* argv[]) {
     unsigned long register_size = sizeof(long unsigned int); // Size of each register (64-bit)
