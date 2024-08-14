@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Building dos tests"
-cd overlay/root/Attacks/workloads
+echo "Building synth workloads"
+cd overlay/root/workloads
 
 make
 
@@ -16,6 +16,13 @@ cd ../../..
 
 echo "Building mempress"
 cd overlay/root/mempress/
+
+make
+
+cd ../../../
+
+echo "Building reg code"
+cd overlay/root/reg/
 
 make
 
