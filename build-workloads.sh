@@ -9,13 +9,13 @@ budgetSlowdown=("640.json" "1280.json" "2560.json" "5120.json" "7680.json" "1024
 
 sdvbs=("disparity" "mser" "sift" "stitch" "tracking" "svm" "localization")
 
-#if [[ $option == "contention" || $option == "all" ]]; then
-#	for i in "${contention[@]}"; do
-#		echo "$i"
-#		sudo ./marshal build $i
-#		sudo ./marshal install $i
-#	done
-#fi
+if [[ $option == "contention" || $option == "all" ]]; then
+	for i in "${contention[@]}"; do
+		echo "$i"
+		sudo ./marshal build $i
+		sudo ./marshal install $i
+	done
+fi
 
 if [[ $option == "synthbudget" || $option == "all" ]]; then
 	for i in "${budgetSlowdown[@]}"; do
@@ -45,10 +45,10 @@ if [[ $option == "realworld" || $option == "all" ]]; then
 	sudo ./marshal install sdvbs-all.json
 fi
 
-if [[  $option == "sdvbsbudget" || $option == "all"  ]]; then
-	for i in "${sdvbs[@]}"; do
-		sudo ./marshal build $i-5120.json
-
-		sudo ./marshal install $i-5120.json
-	done
-fi
+#if [[  $option == "sdvbsbudget" || $option == "all"  ]]; then
+#	for i in "${sdvbs[@]}"; do
+#		sudo ./marshal build $i-5120.json
+#
+#		sudo ./marshal install $i-5120.json
+#	done
+#fi
