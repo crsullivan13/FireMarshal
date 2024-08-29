@@ -1,0 +1,9 @@
+{
+    "name" : "cache-test",
+    "base" : "ubuntu-base.json",
+    "workdir": "cache-test",
+    "overlay" : "overlay",
+    "host-init" : "host-init.sh",
+    "guest-init" : "guest-init.sh",
+    "rootfs-size": "8GB"
+}
