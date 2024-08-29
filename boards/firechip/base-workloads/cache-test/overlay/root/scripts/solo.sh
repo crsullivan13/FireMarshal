@@ -7,7 +7,7 @@ mask=$2
 
 sleep 0.5
 echo $$ > /sys/fs/cgroup/palloc/part1/cgroup.procs
-BkPLL -c 1 -l 6 -b $mask -m 128 -e $victimBank -i 15000 | grep bandwidth | awk 'NF{print $(NF-1)}' > /root/outputs/bkpll-solo.txt
+BkPLL -c 0 -l 6 -b $mask -m 128 -e $victimBank -i 15000 | grep bandwidth | awk 'NF{print $(NF-1)}' > /root/outputs/bkpll-solo.txt
 # sleep 0.5
 # cd /root/mempress
 # taskset -c 1 ./mempress-rocc.riscv -i 10000000 | grep BW | awk 'NF{print $(NF-1)}' > /root/outputs/mempress-solo.txt

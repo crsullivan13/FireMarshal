@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /root/Attacks/workloads
+cd /root/workloads
 mv BkPLL /usr/bin
 mv Bw /usr/bin
 

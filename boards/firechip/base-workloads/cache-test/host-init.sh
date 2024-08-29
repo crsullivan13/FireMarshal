@@ -5,14 +5,14 @@ cd overlay/root/workloads
 
 make
 
-cd ../../../..
+cd ../../../
 
-echo "Building address mapper"
-cd overlay/root/palloc
+# echo "Building address mapper"
+# cd overlay/root/palloc
 
-make mc-mapping-pagemap
+# make mc-mapping-pagemap
 
-cd ../../..
+# cd ../../../
 
 echo "Building mempress"
 cd overlay/root/mempress/
