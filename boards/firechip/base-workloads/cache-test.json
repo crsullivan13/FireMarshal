@@ -1,8 +1,0 @@
-{
-    "name" : "cache-test",
-    "base" : "br-base.json",
-    "overlay" : "overlay",
-    "host-init" : "host-init.sh",
-    "guest-init" : "guest-init.sh",
-    "rootfs-size": "8GB"
-}

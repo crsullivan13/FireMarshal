@@ -1,6 +1,6 @@
 {
     "name" : "sdvbs-all",
-    "base" : "cache-test.json",
+    "base" : "cache-test-br.json",
     "workdir" : "cache-test",
     "outputs" : [ "/root/outputs/" ],
     "jobs" : [
