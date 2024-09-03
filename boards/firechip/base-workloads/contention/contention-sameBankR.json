@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "sameBankR",
-            "command" : "sleep 2; cd /root; ./setup.sh; cd /root/scripts; ./palloc-setup.sh; ./solo.sh 0 0x40; cd /root/mempress; sleep 2; ./contention-test.sh sr 60000000 0 0x40 128 same-bankR.txt; poweroff -f"
+            "command" : "sleep 5; cd /root; ./setup.sh; cd /root/scripts; ./palloc-setup.sh; ./solo.sh 0 0x40; cd /root/mempress; sleep 2; ./contention-test.sh sr 60000000 0 0x40 128 same-bankR.txt; poweroff -f"
         }
     ]
 }

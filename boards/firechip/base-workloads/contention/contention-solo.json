@@ -6,7 +6,7 @@
     "jobs" : [
         {
             "name" : "solo",
-            "command" : "sleep 2; cd root; ./setup.sh; cd /root/scripts; ./palloc-setup.sh; ./solo.sh 0 0x40; poweroff -f"
+            "command" : "sleep 5; cd root; ./setup.sh; cd /root/scripts; ./palloc-setup.sh; ./solo.sh 0 0x40; poweroff -f"
         }
     ]
 }
