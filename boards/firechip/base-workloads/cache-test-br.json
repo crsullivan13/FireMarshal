@@ -1,5 +1,5 @@
 {
-    "name" : "cache-test",
+    "name" : "cache-test-br",
     "base" : "br-base.json",
     "workdir": "cache-test",
     "overlay" : "overlay",

@@ -1,5 +1,5 @@
 {
-    "name" : "cache-test",
+    "name" : "cache-test-ub",
     "base" : "ubuntu-base.json",
     "workdir": "cache-test",
     "overlay" : "overlay",
