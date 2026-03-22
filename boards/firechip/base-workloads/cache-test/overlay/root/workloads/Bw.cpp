@@ -1,0 +1,396 @@
+/**
+ *
+ * Copyright (C) 2012  Heechul Yun <heechul@illinois.edu>
+ *               2012  Zheng <zpwu@uwaterloo.ca>
+ *
+ * This file is distributed under the University of Illinois Open Source
+ * License. See LICENSE.TXT for details.
+ *
+ */
+
+/* clang -S -mllvm --x86-asm-syntax=intel ./bandwidth.c */
+
+/**************************************************************************
+ * Conditional Compilation Options
+ **************************************************************************/
+
+/**************************************************************************
+ * Included Files
+ **************************************************************************/
+#include <vector>
+
+#include <dirent.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <inttypes.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/resource.h>
+
+/**************************************************************************
+ * Public Definitions
+ **************************************************************************/
+#define CACHE_LINE_SIZE 64	   /* cache Line size is 64 byte */
+#ifdef __arm__
+#  define DEFAULT_ALLOC_SIZE_KB 4096
+#else
+#  define DEFAULT_ALLOC_SIZE_KB 16384
+#endif
+
+#define PERF_CTR_PHYS_BASE  0x21000038ULL
+#define PERF_CTR_NUM_BANKS  8
+#define PERF_CTR_BANK_STRIDE 8  /* bytes between banks */
+
+/**************************************************************************
+ * Public Types
+ **************************************************************************/
+enum access_type { READ, WRITE };
+enum corun_type { VICTIM, ATTACKER, SOLO };
+
+/**************************************************************************
+ * Global Variables
+ **************************************************************************/
+int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024;	   /* memory size */
+int *g_mem_ptr = 0;		   /* pointer to allocated memory region */
+
+corun_type g_corun = SOLO;
+std::vector<pid_t> g_attacker_pids;
+
+volatile uint64_t g_nread = 0;	           /* number of bytes read */
+volatile unsigned int g_start;		   /* starting time */
+int cpuid = 0;
+int g_stride = CACHE_LINE_SIZE;
+
+int g_domain = -1;                         /* performance counter domain (-1 = disabled) */
+volatile uint64_t *g_perf_ctr_base = NULL; /* mapped MMIO base for counters */
+void *g_perf_ctr_map = NULL;               /* base of mmap'd region (for accounting) */
+size_t g_perf_ctr_map_size = 0;
+uint64_t g_ctr_before[PERF_CTR_NUM_BANKS] = {};
+uint64_t g_ctr_after[PERF_CTR_NUM_BANKS] = {};
+
+/**************************************************************************
+ * Public Functions
+ **************************************************************************/
+void victim_setup() {
+	DIR* d = opendir("/tmp");
+	struct dirent* entry;
+
+	while ((entry = readdir(d)) != NULL) {
+		if (strncmp(entry->d_name, "attacker_", 9) == 0) {
+			char path[256];
+			snprintf(path, sizeof(path), "/tmp/%s", entry->d_name);
+
+			FILE* f = fopen(path, "r");
+
+			pid_t process_id;
+			fscanf(f, "%d", &process_id);
+			g_attacker_pids.push_back(process_id);
+			fclose(f);
+			remove(path);
+		}
+	}
+	closedir(d);
+}
+
+void attacker_setup() {
+	char filename[128];
+	pid_t process_id = getpid();
+
+	sprintf(filename, "/tmp/attacker_%d.pid", process_id);
+	FILE* f = fopen(filename, "w");
+	fprintf(f, "%d\n", process_id);
+	fclose(f);
+}
+
+void corun_setup() {
+	if (g_corun == VICTIM) {
+		victim_setup();
+	} else if (g_corun == ATTACKER) {
+		attacker_setup();
+	}
+}
+
+unsigned int get_usecs()
+{
+	struct timeval         time;
+	gettimeofday(&time, NULL);
+	return (time.tv_sec * 1000000 +	time.tv_usec);
+}
+
+void perf_ctr_init(int domain)
+{
+	int fd = open("/dev/mem", O_RDWR | O_SYNC);
+	if (fd < 0) {
+		perror("open /dev/mem");
+		return;
+	}
+
+	uint64_t phys = PERF_CTR_PHYS_BASE + (uint64_t)domain * PERF_CTR_NUM_BANKS * PERF_CTR_BANK_STRIDE;
+	long pagesz = sysconf(_SC_PAGE_SIZE);
+	off_t page_base = (off_t)(phys & ~(uint64_t)(pagesz - 1));
+	size_t page_off = (size_t)(phys - (uint64_t)page_base);
+	g_perf_ctr_map_size = page_off + PERF_CTR_NUM_BANKS * PERF_CTR_BANK_STRIDE;
+
+	g_perf_ctr_map = mmap(NULL, g_perf_ctr_map_size,
+	                      PROT_READ | PROT_WRITE, MAP_SHARED, fd, page_base);
+	close(fd);
+
+	if (g_perf_ctr_map == MAP_FAILED) {
+		perror("mmap /dev/mem");
+		g_perf_ctr_map = NULL;
+		return;
+	}
+
+	g_perf_ctr_base = (volatile uint64_t *)((char *)g_perf_ctr_map + page_off);
+	fprintf(stderr, "perf counters mapped: domain=%d phys=0x%llx\n",
+	        domain, (unsigned long long)phys);
+}
+
+void perf_ctr_read(uint64_t *vals)
+{
+	if (!g_perf_ctr_base) return;
+	for (int j = 0; j < PERF_CTR_NUM_BANKS; j++)
+		vals[j] = g_perf_ctr_base[j];
+}
+
+void perf_ctr_report(const uint64_t *before, const uint64_t *after)
+{
+	printf("perf counters (domain %d delta):\n", g_domain);
+	for (int j = 0; j < PERF_CTR_NUM_BANKS; j++)
+		printf("  bank %d: %llu\n", j, (unsigned long long)(after[j] - before[j]));
+}
+
+void quit(int param)
+{
+	float dur_in_sec;
+	float bw;
+	float dur = get_usecs() - g_start;
+	dur_in_sec = (float)dur / 1000000;
+	printf("g_nread(bytes read) = %lld\n", (long long)g_nread);
+	printf("elapsed = %.2f sec ( %.0f usec )\n", dur_in_sec, dur);
+	g_nread = g_nread / ( g_stride / CACHE_LINE_SIZE );
+	bw = (float)g_nread / dur_in_sec / 1024 / 1024;
+	printf("CPU%d: B/W = %.2f MB/s | ",cpuid, bw);
+	printf("CPU%d: average = %.2f ns\n", cpuid, (dur*1000)/(g_nread/CACHE_LINE_SIZE));
+
+	if (g_domain >= 0) {
+		perf_ctr_read(g_ctr_after);
+		perf_ctr_report(g_ctr_before, g_ctr_after);
+	}
+
+	if (g_corun == VICTIM) {
+		for (pid_t pid : g_attacker_pids) {
+			kill(pid, SIGINT);
+		}
+	}
+
+	exit(0);
+}
+
+int64_t bench_read()
+{
+	int i;	
+	int64_t sum = 0;
+	for ( i = 0; i < g_mem_size/4; i+=(g_stride/4) ) {
+		sum += g_mem_ptr[i];
+	}
+	g_nread += g_mem_size;
+	return sum;
+}
+
+int bench_write()
+{
+	register int i;	
+	for ( i = 0; i < g_mem_size/4; i+=(g_stride/4) ) {
+		g_mem_ptr[i] = i;
+	}
+	g_nread += g_mem_size;
+	return 1;
+}
+
+void usage(int argc, char *argv[])
+{
+	printf("Usage: $ %s [<option>]*\n\n", argv[0]);
+	printf("-m: memory size in KB. deafult=8192\n");
+	printf("-a: access type - read, write. default=read\n");
+	printf("-n: addressing pattern - Seq, Row, Bank. default=Seq\n");
+	printf("-t: time to run in sec. 0 means indefinite. default=5. \n");
+	printf("-c: CPU to run.\n");
+	printf("-i: iterations. 0 means intefinite. default=0\n");
+	printf("-p: priority\n");
+	printf("-l: log label. use together with -f\n");
+	printf("-f: log file name\n");
+	printf("-d: performance counter domain (reads MMIO counters at 0x21000038+domain*64)\n");
+	printf("-h: help\n");
+	printf("\nExamples: \n$ bandwidth -m 8192 -a read -t 1 -c 2\n  <- 8MB read for 1 second on CPU 2\n");
+	exit(1);
+}
+
+int main(int argc, char *argv[])
+{
+	int64_t sum = 0;
+	unsigned finish = 5;
+	int prio = 0;        
+	int num_processors;
+	int acc_type = READ;
+	int opt;
+	cpu_set_t cmask;
+	int iterations = 0;
+	int use_hugepage = 0;	
+	int i;
+	size_t j;
+	struct sched_param param;
+
+	/*
+	 * get command line options 
+	 */
+	while ((opt = getopt(argc, argv, "s:m:a:n:t:c:i:p:r:f:l:d:xh")) != -1) {
+		switch (opt) {
+		case 'm': /* set memory size */
+			g_mem_size = 1024 * strtol(optarg, NULL, 0);
+			break;
+		case 'a': /* set access type */
+			if (!strcmp(optarg, "read"))
+				acc_type = READ;
+			else if (!strcmp(optarg, "write"))
+				acc_type = WRITE;
+			else
+				exit(1);
+			break;
+			
+		case 't': /* set time in secs to run */
+			finish = strtol(optarg, NULL, 0);
+			break;
+                case 'x':
+			use_hugepage = (use_hugepage) ? 0: 1;
+			break;
+		case 'c': /* set CPU affinity */
+			cpuid = strtol(optarg, NULL, 0);
+			num_processors = sysconf(_SC_NPROCESSORS_CONF);
+			CPU_ZERO(&cmask);
+			CPU_SET(cpuid % num_processors, &cmask);
+			if (sched_setaffinity(0, num_processors, &cmask) < 0)
+				perror("error");
+			else
+				fprintf(stderr, "assigned to cpu %d\n", cpuid);
+			break;
+
+		case 'r':
+			prio = strtol(optarg, NULL, 0);
+			param.sched_priority = prio; /* 1(low)- 99(high) for SCHED_FIFO or SCHED_RR
+						        0 for SCHED_OTHER or SCHED_BATCH */
+			if(sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
+				perror("sched_setscheduler failed");
+			}
+			break;
+		case 'p': /* set priority */
+			prio = strtol(optarg, NULL, 0);
+			if (setpriority(PRIO_PROCESS, 0, prio) < 0)
+				perror("error");
+			else
+				fprintf(stderr, "assigned priority %d\n", prio);
+			break;
+		case 'i': /* iterations */
+			iterations = strtol(optarg, NULL, 0);
+			break;
+		case 's':
+			g_stride = strtol(optarg, NULL, 0);
+			break;
+		case 'f':
+			if (!strcmp(optarg, "victim")) {
+				g_corun = VICTIM;
+			} else if (!strcmp(optarg, "attacker")) {
+				g_corun = ATTACKER;
+			} else {
+				exit(1);
+			}
+			break;
+		case 'd': /* performance counter domain */
+			g_domain = strtol(optarg, NULL, 0);
+			break;
+		case 'h':
+			usage(argc, argv);
+			break;
+		}
+	}
+
+	/*
+	 * allocate contiguous region of memory 
+	 */ 
+	if (use_hugepage) {
+		g_mem_ptr = (int *)mmap(0, 
+				       g_mem_size,
+				       PROT_READ | PROT_WRITE, 
+				       MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 
+				       -1, 0);
+		if ((void *)g_mem_ptr == MAP_FAILED) {
+			perror("alloc failed");
+			exit(1);
+		}
+	} else {
+		g_mem_ptr = (int *)malloc(g_mem_size);
+		if (g_mem_ptr == NULL) {
+			perror("alloc failed");
+			exit(1);
+		}
+		printf("Using malloc(), not very accurate\n");
+	}
+	
+	memset((char *)g_mem_ptr, 1, g_mem_size);
+
+	for (j = 0; j < g_mem_size / sizeof(int); j++)
+		g_mem_ptr[j] = j;
+
+	/* print experiment info before starting */
+	printf("memsize=%d KB, type=%s, cpuid=%d, stride=%d\n",
+			g_mem_size/1024,
+			((acc_type==READ) ?"read": "write"),
+			cpuid,
+			g_stride);
+	printf("stop at %d\n", finish);
+
+	/* set signals to terminate once time has been reached */
+	signal(SIGINT, &quit);
+	if (finish > 0) {
+		signal(SIGALRM, &quit);
+		alarm(finish);
+	}
+
+	if (g_corun != SOLO) {
+		corun_setup();
+	}
+
+	if (g_domain >= 0)
+		perf_ctr_init(g_domain);
+
+	/*
+	 * actual memory access
+	 */
+	perf_ctr_read(g_ctr_before);
+	g_start = get_usecs();
+	for (i=0;; i++) {
+		switch (acc_type) {
+		case READ:
+			sum += bench_read();
+			break;
+		case WRITE:
+			sum += bench_write();
+			break;
+		}
+
+		if (iterations > 0 && i+1 >= iterations)
+			break;
+	}
+	printf("total sum = %ld\n", (long)sum);
+	quit(0);
+	return 0;
+}
+
