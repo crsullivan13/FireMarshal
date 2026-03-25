@@ -22,7 +22,7 @@ sleep 5
 TYPES=("read" "write")
  
 ITERATIONS=${#TYPES[@]}
-NUM_RUNS=5
+NUM_RUNS=${1:-5}
  
 # run single bank attack
 for ((i=0; i<ITERATIONS; i++)); do

@@ -20,7 +20,7 @@ WORKLOADS=(0 1)
 
 ITERATIONS=${#WORKLOADS[@]}
 
-NUM_REGULATED_RUNS=5
+NUM_REGULATED_RUNS=${1:-5}
 
 for ((i=0; i<ITERATIONS; i++)); do
   WORKLOAD=${WORKLOADS[$i]}
@@ -37,7 +37,7 @@ for ((i=0; i<ITERATIONS; i++)); do
 
   sleep 2
   # baseline (run once)
-  taskset -c 1 matrix -a ${WORKLOADS[$i]} -n 1152  # > "$run_dir/opt${WORKLOADS[$i]}_noreg.log" 2>&1
+  taskset -c 0 matrix -a ${WORKLOADS[$i]} -n 1152  # > "$run_dir/opt${WORKLOADS[$i]}_noreg.log" 2>&1
 
   devmem 0x21000008 64 1000000
   devmem 0x21000010 64 1000000
@@ -47,7 +47,7 @@ for ((i=0; i<ITERATIONS; i++)); do
 
   # regulated (run multiple times)
   for ((r=1; r<=NUM_REGULATED_RUNS; r++)); do
-    taskset -c 1 matrix -a ${WORKLOADS[$i]} -n 1152 # > "$run_dir/opt${WORKLOADS[$i]}_reg_${r}.log" 2>&1
+    taskset -c 0 matrix -a ${WORKLOADS[$i]} -n 1152 # > "$run_dir/opt${WORKLOADS[$i]}_reg_${r}.log" 2>&1
   done
 
   echo "Run $run complete"

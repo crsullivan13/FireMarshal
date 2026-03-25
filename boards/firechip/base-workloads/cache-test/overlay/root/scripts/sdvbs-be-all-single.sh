@@ -19,7 +19,7 @@ WORKLOADS=("disparity" "mser" "sift" "stitch" "tracking")
 
 ITERATIONS=${#WORKLOADS[@]}
 
-NUM_REGULATED_RUNS=5
+NUM_REGULATED_RUNS=${1:-5}
 
 for ((i=0; i<ITERATIONS; i++)); do
   WORKLOAD=${WORKLOADS[$i]}
@@ -36,7 +36,7 @@ for ((i=0; i<ITERATIONS; i++)); do
 
   sleep 2
   # baseline (run once)
-  taskset -c 1 /root/sd-vbs/$WORKLOAD/data/fullhd/$WORKLOAD /root/sd-vbs/$WORKLOAD/data/fullhd # > "$run_dir/stats_noreg.log" 2>&1
+  taskset -c 0 /root/sd-vbs/$WORKLOAD/data/fullhd/$WORKLOAD /root/sd-vbs/$WORKLOAD/data/fullhd # > "$run_dir/stats_noreg.log" 2>&1
 
   devmem 0x21000008 64 1000000
   devmem 0x21000010 64 1000000
@@ -46,7 +46,7 @@ for ((i=0; i<ITERATIONS; i++)); do
 
   # regulated (run multiple times)
   for ((r=1; r<=NUM_REGULATED_RUNS; r++)); do
-    taskset -c 1 /root/sd-vbs/$WORKLOAD/data/fullhd/$WORKLOAD /root/sd-vbs/$WORKLOAD/data/fullhd # > "$run_dir/stats_reg_${r}.log" 2>&1
+    taskset -c 0 /root/sd-vbs/$WORKLOAD/data/fullhd/$WORKLOAD /root/sd-vbs/$WORKLOAD/data/fullhd # > "$run_dir/stats_reg_${r}.log" 2>&1
   done
 
   echo "Run $run complete"
