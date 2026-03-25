@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# NOTE: If getting firmware trap errors, remove output redirects and manually inspect uartlog for data
+
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,7 +24,7 @@ for type in "${TYPES[@]}"; do
         # start one pll per core id: 0 .. cores-1
         for ((c=0; c<cores; c++)); do
             logfile="$run_dir/pll_c${c}.log"
-            BkPLL -c $c -e 0 -l 6 -m 32768 -i 9999999999999 -b 0x70000 -a "$type" -x >"$logfile" 2>&1 &
+            BkPLL -c $c -e 0 -l 6 -m 32768 -i 9999999999999 -b 0xe00 -a "$type" -x > "$logfile" 2>&1 &
         done
  
         echo "Running for ${DURATION}s..."

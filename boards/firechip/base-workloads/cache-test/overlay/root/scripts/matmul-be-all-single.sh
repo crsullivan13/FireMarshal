@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 mv /root/matrix /usr/bin
 
+# NOTE: If getting firmware trap errors, remove output redirects and manually inspect uartlog for data
 # NOTE: output files commented out by default, i.e. results in your uartlog
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$DIR/workload-setup.sh"
+"$DIR/bru-module-setup-forward-single-core.sh"
 
 Bw -c 0 -t 1 -m 128
 Bw -c 0 -t 1 -m 2048
@@ -18,7 +20,7 @@ WORKLOADS=(0 1)
 
 ITERATIONS=${#WORKLOADS[@]}
 
-NUM_REGULATED_RUNS=10
+NUM_REGULATED_RUNS=5
 
 for ((i=0; i<ITERATIONS; i++)); do
   WORKLOAD=${WORKLOADS[$i]}

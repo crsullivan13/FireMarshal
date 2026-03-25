@@ -1,0 +1,9 @@
+#!/bin/bash
+
+devmem 0x20000000 32 0
+devmem 0x20000010 64 0xf
+devmem 0x20000040 64 1
+devmem 0x20000048 64 1
+devmem 0x20000050 64 1
+devmem 0x20000058 64 1
+devmem 0x20000000 32 1

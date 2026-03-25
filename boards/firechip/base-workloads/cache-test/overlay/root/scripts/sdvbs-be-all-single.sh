@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+# NOTE: If getting firmware trap errors, remove output redirects and manually inspect uartlog for data
 # NOTE: output files commented out by default, i.e. results in your uartlog
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$DIR/workload-setup.sh"
+"$DIR/bru-module-setup-forward-single-core.sh"
 
 Bw -c 0 -t 1 -m 128
 Bw -c 0 -t 1 -m 2048
