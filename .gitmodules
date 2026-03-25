@@ -16,3 +16,6 @@
 [submodule "boards/firechip/drivers/iceblk-driver"]
 	path = boards/firechip/drivers/iceblk-driver
 	url = https://github.com/firesim/iceblk-driver.git
+[submodule "boards/firechip/base-workloads/cortexsuite"]
+	path = boards/firechip/base-workloads/cortexsuite
+	url = https://github.com/crsullivan13/cortextsuite-fsim
