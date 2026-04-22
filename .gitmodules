@@ -19,3 +19,6 @@
 [submodule "boards/firechip/base-workloads/cortexsuite"]
 	path = boards/firechip/base-workloads/cortexsuite
 	url = https://github.com/crsullivan13/cortextsuite-fsim
+[submodule "boards/firechip/base-workloads/cbqri-kern-module"]
+	path = boards/firechip/base-workloads/cbqri-kern-module
+	url = https://github.com/crsullivan13/cbqri-kern-module.git
